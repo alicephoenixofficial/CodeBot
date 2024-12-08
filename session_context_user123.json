@@ -1,0 +1,12 @@
+{
+    "user_id": "user123",
+    "last_intent": "greeting",
+    "last_entity": "hello",
+    "topic": "greeting",
+    "history": [
+        {
+            "input": "Hi",
+            "response": "Hello, user!"
+        }
+    ]
+}

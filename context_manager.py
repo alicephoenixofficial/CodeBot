@@ -1,4 +1,5 @@
 import json
+import logging
 import signal
 import sys
 import time
@@ -77,14 +78,26 @@ class ContextManager:
         print("Manually terminating session. Saving context...")
         self.save_context()
         self.is_terminated = True
+        print("Session terminated.")
         sys.exit(0)  # Terminate the session manually
 
     def load_context(self):
-        """Load the context from the JSON file if exists."""
+        """Load the context from the JSON file if it exists."""
         if os.path.exists(self.context_file_path):
-            with open(self.context_file_path, "r") as file:
-                self.context = json.load(file)
-                print(f"Context for user {self.user_id} loaded.")
+            try:
+                with open(self.context_file_path, "r") as file:
+                    self.context = json.load(file)
+                    print(f"Context for user {self.user_id} loaded.")
+            except (json.JSONDecodeError, IOError) as e:
+                # Handle corrupt or unreadable files gracefully
+                logging.error(f"Error loading context for user {self.user_id}: {e}")
+                self.context = {
+                    "user_id": self.user_id,
+                    "last_intent": None,
+                    "last_entity": None,
+                    "topic": None,
+                    "history": []
+                }
         else:
             print(f"No saved context found for user {self.user_id}. Starting fresh.")
 
@@ -117,7 +130,11 @@ class ContextManager:
                 self.update(input_text=user_input, response="Bot response based on input.")
                 time.sleep(1)  # Simulating bot's work
 
+if __name__ == "__main__":
+    print("Context Manager is running...")
+    # You can call any functions or actions you'd like to test here
+
 # Example usage:
-context_manager = ContextManager(user_id="user123")
-context_manager.load_context()  # Simulate loading the saved context
-context_manager.start()
+#context_manager = ContextManager(user_id="user123")
+#context_manager.load_context()  # Simulate loading the saved context
+#context_manager.start()
