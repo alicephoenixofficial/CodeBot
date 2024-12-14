@@ -1,0 +1,114 @@
+### Code Bot Project Overview
+
+#### **Vision**
+To develop an AI assistant akin to J.A.R.V.I.S. from the Marvel Cinematic Universe, starting with Python-specific capabilities and expanding to support other programming languages and advanced planning functionalities.
+
+---
+
+### **Phase 1: Code Bot v1 Development**
+
+#### **Goals**
+- Build a robust Python-focused AI assistant capable of code generation, debugging, and explanation.
+- Develop a modular, scalable architecture to support future iterations.
+
+#### **Key Steps**
+1. **Foundation Development:**
+   - Finalize the Context Manager for persistent session tracking (local JSON storage).
+   - Develop the Tokenization Engine for handling Python code and natural language.
+   - Implement rule-based Intent Detection for basic intents.
+   - Build a basic code parsing module using Python's `ast` module.
+
+2. **Data Preparation:**
+   - Scrape and preprocess official Python documentation to establish a foundation of core language features, built-in functions, and modules.
+   - Curate and preprocess Python code snippets from open-source repositories, focusing on high-quality examples with permissive licenses.
+   - Annotate examples with explanations.
+   - Use predefined datasets:
+     - `nltk.corpus.words`
+     - `nltk.corpus.stopwords`
+     - Punkt
+     - Pygments
+     - WordNet
+     - The Brown Corpus
+     - Friends Corpus
+     - Cornell Movie-Dialogs Corpus.
+
+3. **Prototype Development:**
+   - Build a command-line chatbot interface integrating core modules.
+   - Test with sample queries and refine based on feedback.
+
+4. **Documentation and Testing:**
+   - Write test cases for key features.
+   - Document architecture and APIs for future iterations.
+
+5. **User Feedback Mechanism:**
+   - Develop a feedback logging system for ratings and comments.
+
+6. **Plan for Scaling to v2:**
+   - Identify machine learning opportunities for intent detection and semantic analysis.
+   - Set up workflows for incorporating ML models.
+   - Define milestones for advanced features like reasoning and task decomposition.
+
+---
+
+### **Phase 2: Code Bot v2 Expansion**
+
+#### **Goals**
+- Expand capabilities to include multiple programming languages.
+- Transition to machine learning-based modules for intent detection and reasoning.
+
+#### **Refined Data Strategy**
+- Scrape and preprocess official documentation for each additional language to establish a foundational understanding of their respective core features, built-in functions, and modules.
+- Collect well-documented code from repositories (GitHub, GitLab).
+- Organize datasets into training, validation, and testing subsets.
+- Ensure quality through manual reviews and iterative refinement.
+
+#### **Hardware Considerations**
+- Current development occurs on a 2016 MacBook Pro, focusing on efficiency and optimization within hardware constraints.
+
+---
+
+### **J.A.R.V.I.S. Protocol**
+
+#### **Vision**
+To enable advanced conceptualization and planning functionalities, supporting high-level tasks such as roadmap generation, feature brainstorming, and implementation planning.
+
+#### **Roadmap**
+1. **Modular Task-Specific Design:**
+   - Expand Intent Classification to recognize planning-related intents.
+   - Introduce a Planning Logic Engine for task decomposition.
+   - Enhance Context Tracking for multi-session continuity.
+
+2. **Curated Datasets:**
+   - Gather examples of structured problem-solving and project management scenarios.
+   - Use open-source resources and templates for planning-related tasks.
+
+3. **Rule-Based Reasoning Framework:**
+   - Define workflows for tasks like creating roadmaps and allocating resources.
+   - Use decision trees or finite-state machines for guidance.
+
+4. **Knowledge Graph Integration:**
+   - Map relationships between concepts and tasks.
+   - Dynamically generate and refine plans.
+
+5. **Response Generation:**
+   - Use template-based and algorithmic methods to generate structured outputs.
+
+6. **Dialogue Management:**
+   - Implement multi-turn conversation handling with prioritization of unresolved queries.
+
+7. **Visualization Tools:**
+   - Integrate tools for visual outputs (e.g., Gantt charts, flow diagrams).
+
+8. **Iterative Development:**
+   - Start with basic workflows, expand to complex multi-layered plans.
+   - Incorporate user feedback for refinement.
+
+---
+
+### **Next Steps**
+1. Complete foundational modules for Code Bot v1.
+2. Transition to v2 with enhanced ML-based features.
+3. Implement the J.A.R.V.I.S. Protocol to enable advanced planning capabilities.
+
+This roadmap ensures a methodical progression from foundational capabilities to advanced functionalities, delivering a powerful and scalable AI assistant.
+
