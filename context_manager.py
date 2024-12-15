@@ -5,9 +5,10 @@ import sys
 import time
 from threading import Timer
 import os
+from cryptography.fernet import Fernet  # For encryption (requires installation via `pip install cryptography`)
 
 class ContextManager:
-    def __init__(self, user_id, inactivity_timeout=600, timeout=300):
+    def __init__(self, user_id, inactivity_timeout=600, timeout=300, encryption_key=None):
         self.user_id = user_id
         self.context = {
             "user_id": user_id,
@@ -22,6 +23,11 @@ class ContextManager:
         self.context_file_path = f"session_context_{user_id}.json"
         self.timer = None
         self.is_terminated = False
+        self.encryption_key = encryption_key or Fernet.generate_key()
+        self.cipher = Fernet(self.encryption_key)
+
+        # Configure logging
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
         # Set up signal handlers for graceful exit
         signal.signal(signal.SIGINT, self.signal_handler)  # Catch Ctrl+C
@@ -29,7 +35,7 @@ class ContextManager:
 
     def signal_handler(self, sig, frame):
         """Handles termination signals and gracefully archives context."""
-        print("\nProgram terminated. Saving context...")
+        logging.info("Program terminated. Saving context...")
         self.save_context()
         sys.exit(0)
 
@@ -57,56 +63,57 @@ class ContextManager:
 
     def on_timeout(self):
         """Saves context after inactivity timeout without terminating the session."""
-        print("Inactivity timeout reached. Saving context...")
+        logging.info("Inactivity timeout reached. Saving context...")
         self.save_context()
 
     def save_context(self):
-        """Saves the current context to a JSON file."""
-        if not self.is_terminated:
-            # Convert context to JSON and save
-            with open(self.context_file_path, "w") as file:
-                json.dump(self.context, file, indent=4)
-            print(f"Context for user {self.user_id} saved.")
+        """Saves the current context to an encrypted JSON file."""
+        try:
+            if not self.is_terminated:
+                # Encrypt context before saving
+                context_data = json.dumps(self.context).encode()
+                encrypted_data = self.cipher.encrypt(context_data)
+                with open(self.context_file_path, "wb") as file:
+                    file.write(encrypted_data)
+                logging.info(f"Context for user {self.user_id} saved.")
+        except Exception as e:
+            logging.error(f"Failed to save context: {e}")
 
     def manual_save(self):
         """Allows the user to manually save the context."""
-        print("Manually saving context...")
+        logging.info("Manually saving context...")
         self.save_context()
 
     def manual_terminate(self):
         """Allows the user to manually terminate the session and save the context."""
-        print("Manually terminating session. Saving context...")
+        logging.info("Manually terminating session. Saving context...")
         self.save_context()
         self.is_terminated = True
-        print("Session terminated.")
+        logging.info("Session terminated.")
         sys.exit(0)  # Terminate the session manually
 
     def load_context(self):
-        """Load the context from the JSON file if it exists."""
+        """Load the context from the encrypted JSON file if it exists."""
         if os.path.exists(self.context_file_path):
             try:
-                with open(self.context_file_path, "r") as file:
-                    self.context = json.load(file)
-                    print(f"Context for user {self.user_id} loaded.")
-            except (json.JSONDecodeError, IOError) as e:
+                with open(self.context_file_path, "rb") as file:
+                    encrypted_data = file.read()
+                    context_data = self.cipher.decrypt(encrypted_data).decode()
+                    self.context = json.loads(context_data)
+                    logging.info(f"Context for user {self.user_id} loaded.")
+            except (json.JSONDecodeError, IOError, Exception) as e:
                 # Handle corrupt or unreadable files gracefully
                 logging.error(f"Error loading context for user {self.user_id}: {e}")
-                self.context = {
-                    "user_id": self.user_id,
-                    "last_intent": None,
-                    "last_entity": None,
-                    "topic": None,
-                    "history": []
-                }
+                self.clear_context()
         else:
-            print(f"No saved context found for user {self.user_id}. Starting fresh.")
+            logging.info(f"No saved context found for user {self.user_id}. Starting fresh.")
 
     def clear_context(self):
         """Clear the current context."""
         self.context = {key: None for key in self.context.keys()}
         self.context["history"] = []
         self.last_interaction_time = time.time()
-        print(f"Context for user {self.user_id} cleared.")
+        logging.info(f"Context for user {self.user_id} cleared.")
 
     def get_summary(self):
         """Retrieve a summary of the current context."""
@@ -118,7 +125,7 @@ class ContextManager:
 
     def start(self):
         """Starts the bot and waits for user interaction."""
-        print("Bot running. Type 'exit' to terminate or 'save' to save context manually.")
+        logging.info("Bot running. Type 'exit' to terminate or 'save' to save context manually.")
         while not self.is_terminated:
             user_input = input("> ").strip().lower()
             if user_input == 'exit':
@@ -126,15 +133,13 @@ class ContextManager:
             elif user_input == 'save':
                 self.manual_save()
             else:
-                print("Bot responding to input...")
+                logging.info("Bot responding to input...")
                 self.update(input_text=user_input, response="Bot response based on input.")
                 time.sleep(1)  # Simulating bot's work
 
 if __name__ == "__main__":
-    print("Context Manager is running...")
-    # You can call any functions or actions you'd like to test here
-
-# Example usage:
+    logging.info("Context Manager is running...")
+    # Example usage:
 #context_manager = ContextManager(user_id="user123")
 #context_manager.load_context()  # Simulate loading the saved context
 #context_manager.start()
