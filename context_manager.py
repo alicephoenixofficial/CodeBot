@@ -6,7 +6,11 @@ import time
 from threading import Timer
 import os
 from cryptography.fernet import Fernet  # For encryption (requires installation via `pip install cryptography`)
+from dotenv import load_dotenv, set_key  # Import functions for loading and saving to .env file
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", stream=sys.stdout)
+sys.stdout.flush()  # Force flush to ensure logs are printed immediately
 class ContextManager:
     def __init__(self, user_id, inactivity_timeout=600, timeout=300, encryption_key=None):
         self.user_id = user_id
@@ -23,11 +27,21 @@ class ContextManager:
         self.context_file_path = f"session_context_{user_id}.json"
         self.timer = None
         self.is_terminated = False
-        self.encryption_key = encryption_key or Fernet.generate_key()
-        self.cipher = Fernet(self.encryption_key)
+         # Load environment variables from .env file
+        load_dotenv()
 
-        # Configure logging
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+        # Check if the key already exists in the .env file
+        if "ENCRYPTION_KEY" not in os.environ:
+            # If not, generate a new encryption key
+            encryption_key = Fernet.generate_key()
+            # Store it in the .env file
+            set_key('.env', 'ENCRYPTION_KEY', encryption_key.decode())
+            logging.info("Encryption key generated and stored in .env file.")
+        else:
+            logging.info("Encryption key already exists in .env file.")
+        
+        # Use the encryption key from the environment
+        self.cipher = Fernet(os.getenv("ENCRYPTION_KEY"))
 
         # Set up signal handlers for graceful exit
         signal.signal(signal.SIGINT, self.signal_handler)  # Catch Ctrl+C
@@ -39,20 +53,21 @@ class ContextManager:
         self.save_context()
         sys.exit(0)
 
-    def update(self, intent=None, entity=None, topic=None, input_text=None, response=None):
+    def update(self, **kwargs):
         """Updates the context based on new input and response."""
         self.last_interaction_time = time.time()  # Update the timestamp of the last interaction
-        if intent:
-            self.context["last_intent"] = intent
-        if entity:
-            self.context["last_entity"] = entity
-        if topic:
-            self.context["topic"] = topic
-        if input_text and response:
-            self.context["history"].append({"input": input_text, "response": response})
+        if "intent" in kwargs:
+            self.context["last_intent"] = kwargs["intent"]
+        if "entity" in kwargs:
+            self.context["last_entity"] = kwargs["entity"]
+        if "topic" in kwargs:
+            self.context["topic"] = kwargs["topic"]
+        if "input_text" in kwargs and "response" in kwargs:
+            self.context["history"].append({"input": kwargs["input_text"], "response": kwargs["response"]})
         
-        # Reset the inactivity timer
+        # Reset the inactivity timer and log the context
         self.reset_timer()
+        logging.info(f"Context updated for user {self.user_id}. Current context: {self.context}")
 
     def reset_timer(self):
         """Resets the inactivity timer."""
@@ -95,18 +110,35 @@ class ContextManager:
     def load_context(self):
         """Load the context from the encrypted JSON file if it exists."""
         if os.path.exists(self.context_file_path):
+            print("os path exists")
             try:
                 with open(self.context_file_path, "rb") as file:
                     encrypted_data = file.read()
-                    context_data = self.cipher.decrypt(encrypted_data).decode()
-                    self.context = json.loads(context_data)
-                    logging.info(f"Context for user {self.user_id} loaded.")
-            except (json.JSONDecodeError, IOError, Exception) as e:
-                # Handle corrupt or unreadable files gracefully
-                logging.error(f"Error loading context for user {self.user_id}: {e}")
+                    print("Encrypted data read.")
+                
+                    # Try decrypting and decoding
+                    try:
+                        context_data = self.cipher.decrypt(encrypted_data).decode()
+                        print("Decryption successful.")
+                    except Exception as decryption_error:
+                        logging.error(f"Decryption failed: {decryption_error}")
+                        return  # Exit the method early, as decryption failed
+                    
+                    # Try loading the context as JSON
+                    try:
+                        self.context = json.loads(context_data)
+                        print("Context loaded.")
+                        logging.info(f"Context for user {self.user_id} loaded.")
+                    except json.JSONDecodeError as json_error:
+                        logging.error(f"Error decoding JSON: {json_error}")
+                        self.clear_context()
+            except Exception as e:
+                # Catch any unexpected errors and log them
+                logging.error(f"Decryption failed for user {self.user_id}: {e}")
                 self.clear_context()
         else:
             logging.info(f"No saved context found for user {self.user_id}. Starting fresh.")
+
 
     def clear_context(self):
         """Clear the current context."""
@@ -123,7 +155,7 @@ class ContextManager:
             "last_entity": self.context.get("last_entity"),
         }
 
-    def start(self):
+    def start(self, bot):
         """Starts the bot and waits for user interaction."""
         logging.info("Bot running. Type 'exit' to terminate or 'save' to save context manually.")
         while not self.is_terminated:
@@ -135,11 +167,19 @@ class ContextManager:
             else:
                 logging.info("Bot responding to input...")
                 self.update(input_text=user_input, response="Bot response based on input.")
+                
+                # Process input through CodeBot
+                response = bot.handle_input(user_input) 
+                print(response)
                 time.sleep(1)  # Simulating bot's work
+
+    def handle_input(self, user_input):
+        # Placeholder: Will use NLP here in future steps
+        return f"Bot response to '{user_input}'"
 
 if __name__ == "__main__":
     logging.info("Context Manager is running...")
     # Example usage:
-#context_manager = ContextManager(user_id="user123")
-#context_manager.load_context()  # Simulate loading the saved context
-#context_manager.start()
+# context_manager = ContextManager(user_id="user123")
+# context_manager.load_context()  # Simulate loading the saved context
+# context_manager.start()
