@@ -9,7 +9,8 @@ from cryptography.fernet import Fernet  # For encryption (requires installation 
 from dotenv import load_dotenv, set_key  # Import functions for loading and saving to .env file
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", stream=sys.stdout)
+logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
+
 sys.stdout.flush()  # Force flush to ensure logs are printed immediately
 class ContextManager:
     def __init__(self, user_id, inactivity_timeout=600, timeout=300, encryption_key=None):
@@ -27,18 +28,17 @@ class ContextManager:
         self.context_file_path = f"session_context_{user_id}.json"
         self.timer = None
         self.is_terminated = False
+
          # Load environment variables from .env file
         load_dotenv()
 
         # Check if the key already exists in the .env file
         if "ENCRYPTION_KEY" not in os.environ:
-            # If not, generate a new encryption key
             encryption_key = Fernet.generate_key()
-            # Store it in the .env file
             set_key('.env', 'ENCRYPTION_KEY', encryption_key.decode())
-            logging.info("Encryption key generated and stored in .env file.")
+            logging.debug("Encryption key generated and stored in .env file.")
         else:
-            logging.info("Encryption key already exists in .env file.")
+            logging.debug("Encryption key already exists in .env file.")
         
         # Use the encryption key from the environment
         self.cipher = Fernet(os.getenv("ENCRYPTION_KEY"))
@@ -67,13 +67,14 @@ class ContextManager:
         
         # Reset the inactivity timer and log the context
         self.reset_timer()
-        logging.info(f"Context updated for user {self.user_id}. Current context: {self.context}")
+        logging.debug(f"Context updated for user {self.user_id}. Current context: {self.context}")
 
     def reset_timer(self):
         """Resets the inactivity timer."""
         if self.timer:
             self.timer.cancel()
         self.timer = Timer(self.timeout, self.on_timeout)
+        self.timer.daemon = True
         self.timer.start()
 
     def on_timeout(self):
@@ -90,18 +91,18 @@ class ContextManager:
                 encrypted_data = self.cipher.encrypt(context_data)
                 with open(self.context_file_path, "wb") as file:
                     file.write(encrypted_data)
-                logging.info(f"Context for user {self.user_id} saved.")
+                logging.info(f"Context saved.")
         except Exception as e:
             logging.error(f"Failed to save context: {e}")
 
     def manual_save(self):
         """Allows the user to manually save the context."""
-        logging.info("Manually saving context...")
+        logging.info("Saving context...")
         self.save_context()
 
     def manual_terminate(self):
         """Allows the user to manually terminate the session and save the context."""
-        logging.info("Manually terminating session. Saving context...")
+        logging.info("Terminating session. Saving context...")
         self.save_context()
         self.is_terminated = True
         logging.info("Session terminated.")
@@ -110,16 +111,16 @@ class ContextManager:
     def load_context(self):
         """Load the context from the encrypted JSON file if it exists."""
         if os.path.exists(self.context_file_path):
-            print("os path exists")
+            logging.debug("os path exists")
             try:
                 with open(self.context_file_path, "rb") as file:
                     encrypted_data = file.read()
-                    print("Encrypted data read.")
+                    logging.debug("Encrypted data read.")
                 
                     # Try decrypting and decoding
                     try:
                         context_data = self.cipher.decrypt(encrypted_data).decode()
-                        print("Decryption successful.")
+                        logging.debug("Decryption successful.")
                     except Exception as decryption_error:
                         logging.error(f"Decryption failed: {decryption_error}")
                         return  # Exit the method early, as decryption failed
@@ -127,8 +128,8 @@ class ContextManager:
                     # Try loading the context as JSON
                     try:
                         self.context = json.loads(context_data)
-                        print("Context loaded.")
-                        logging.info(f"Context for user {self.user_id} loaded.")
+                        logging.info("Context loaded.")
+                        logging.debug(f"Context for user {self.user_id} loaded.")
                     except json.JSONDecodeError as json_error:
                         logging.error(f"Error decoding JSON: {json_error}")
                         self.clear_context()
@@ -137,7 +138,7 @@ class ContextManager:
                 logging.error(f"Decryption failed for user {self.user_id}: {e}")
                 self.clear_context()
         else:
-            logging.info(f"No saved context found for user {self.user_id}. Starting fresh.")
+            logging.info(f"No saved context found. Starting fresh.")
 
 
     def clear_context(self):
@@ -145,7 +146,7 @@ class ContextManager:
         self.context = {key: None for key in self.context.keys()}
         self.context["history"] = []
         self.last_interaction_time = time.time()
-        logging.info(f"Context for user {self.user_id} cleared.")
+        logging.info(f"Context cleared.")
 
     def get_summary(self):
         """Retrieve a summary of the current context."""
@@ -156,9 +157,8 @@ class ContextManager:
         }
 
     def start(self, bot):
-        """Starts the bot and waits for user interaction."""
         logging.info("Bot running. Type 'exit' to terminate or 'save' to save context manually.")
-        while not self.is_terminated:
+        """ while not self.is_terminated:
             user_input = input("> ").strip().lower()
             if user_input == 'exit':
                 self.manual_terminate()
@@ -170,12 +170,8 @@ class ContextManager:
                 
                 # Process input through CodeBot
                 response = bot.handle_input(user_input) 
-                print(response)
                 time.sleep(1)  # Simulating bot's work
-
-    def handle_input(self, user_input):
-        # Placeholder: Will use NLP here in future steps
-        return f"Bot response to '{user_input}'"
+                logging.info(response) """
 
 if __name__ == "__main__":
     logging.info("Context Manager is running...")

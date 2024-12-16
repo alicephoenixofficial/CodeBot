@@ -5,7 +5,9 @@ class EntityRecognizer:
         # Define entity types (keywords, identifiers, operators, etc.)
         self.entity_types = {
             "keyword": keyword.kwlist,
-            "operator": ["+", "-", "*", "/", "=", ":", ">", "<", "(", ")", "{", "}", "[", "]", "!","|"]
+            "operator": ["+", "-", "*", "/", "=", ":", ">", "<", "(", ")", "{", "}", "[", "]", "!","|"],
+            "function": set(),  # You can add logic to identify function names
+            "class": set()     # Logic for class names
             # Add more as needed
         }
     
