@@ -1,8 +1,27 @@
+import keyword
+
 class EntityRecognizer:
-    def recognize(self, tokens):
-        """Simple entity recognition based on keywords."""
-        entities = []
+    def __init__(self):
+        # Define entity types (keywords, identifiers, operators, etc.)
+        self.entity_types = {
+            "keyword": keyword.kwlist,
+            "operator": ["+", "-", "*", "/", "=", ":", ">", "<", "(", ")", "{", "}", "[", "]", "!","|"]
+            # Add more as needed
+        }
+    
+    def recognize_entities(self, tokens):
+
+        recognized = []
+
         for token in tokens:
-            if token.lower() == "developer":
-                entities.append({"type": "profession", "value": "developer"})
-        return entities
+            if token in self.entity_types["keyword"]:
+                recognized.append((token, "keyword"))
+            elif token in self.entity_types["operator"]:
+                recognized.append((token, "operator"))
+            elif token.isidentifier():
+                recognized.append((token, "identifier"))
+            elif token.isnumeric():
+                recognized.append((token, "number"))
+            else:
+                recognized.append((token, "unknown"))
+        return recognized

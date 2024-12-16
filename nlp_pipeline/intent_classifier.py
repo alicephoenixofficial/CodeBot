@@ -7,7 +7,7 @@ class IntentClassifier:
             "ask_for_help": ["help", "assist", "support"]
         }
 
-    def recognize_intent(self, tokens):
+    def classify_intent(self, tokens):
         for intent, keywords in self.intents.items():
             if any(keyword in tokens for keyword in keywords):
                 return intent

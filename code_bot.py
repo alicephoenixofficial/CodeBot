@@ -5,12 +5,15 @@ class CodeBot:
     def __init__(self, user_id):
         self.context_manager = ContextManager(user_id)
         self.tokenizer = Tokenizer()
-        self.intent_recognizer = IntentClassifier()
+        self.intent_classifier = IntentClassifier()
 
     def handle_input(self, user_input):
         tokens = self.tokenizer.tokenize(user_input)
-        intent = self.intent_recognizer.recognize_intent(tokens)
-        
+        intent = self.intent_classifier.classify_intent(tokens)
+        #pos = self.pos_tagger.tag(tokens)
+        #entities = self.entity_recognizer.recognize_entities(tokens)
+        #response = self.response_generator.generate(intent, entities)
+
         if intent == "greet":
             response = "Hello! How can I assist you today?"
         elif intent == "bye":
